@@ -9,3 +9,4 @@ This repository records my learning path toward AI systems, machine learning eng
 - Day 1: Environment setup
 - Day 2: Linux basic commands
 - Day 3: Git basics
+- Practiced Git status, add, commit, log, and diff.
