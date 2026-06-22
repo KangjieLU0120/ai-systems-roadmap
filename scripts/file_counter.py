@@ -11,6 +11,17 @@ class ScanResult(TypedDict):
     extension_counts: dict[str, int]
 
 
+DEFAULT_EXCLUDED_DIRS = {
+    ".git",
+    ".vscode",
+    ".venv",
+    "__pycache__",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+}
+
+
 def format_size(size_bytes: int) -> str:
     if size_bytes < 1024:
         return f"{size_bytes} B"
@@ -19,14 +30,21 @@ def format_size(size_bytes: int) -> str:
     return f"{size_bytes / (1024 * 1024):.2f} MB"
 
 
-def scan_directory(root: Path) -> ScanResult:
+def should_skip_path(path: Path, include_hidden: bool) -> bool:
+    if include_hidden:
+        return False
+
+    return any(part in DEFAULT_EXCLUDED_DIRS for part in path.parts)
+
+
+def scan_directory(root: Path, include_hidden: bool = False) -> ScanResult:
     file_count = 0
     directory_count = 0
     total_size = 0
     extension_counts: dict[str, int] = {}
 
     for path in root.rglob("*"):
-        if ".git" in path.parts:
+        if should_skip_path(path, include_hidden):
             continue
 
         if path.is_dir():
@@ -63,6 +81,11 @@ def print_report(result: ScanResult) -> None:
 def main() -> None:
     parser = ArgumentParser(description="Count files in a directory.")
     parser.add_argument("path", help="Directory path to scan")
+    parser.add_argument(
+        "--include-hidden",
+        action="store_true",
+        help="Include hidden and cache directories such as .git and .venv",
+    )
     args = parser.parse_args()
 
     root = Path(args.path).expanduser().resolve()
@@ -73,7 +96,7 @@ def main() -> None:
     if not root.is_dir():
         raise NotADirectoryError(f"Path is not a directory: {root}")
 
-    result = scan_directory(root)
+    result = scan_directory(root, include_hidden=args.include_hidden)
     print_report(result)
 
 
